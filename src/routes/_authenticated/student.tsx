@@ -94,13 +94,25 @@ function StudentPage() {
     void queryClient.invalidateQueries({ queryKey: ["student-events", user.id] });
   }
 
-  async function openMaterial(id: string, path: string, download: boolean) {
+  async function openMaterial(id: string, title: string, path: string, download: boolean) {
     const { data, error } = await supabase.storage
       .from("materials")
-      .createSignedUrl(path, 300, download ? { download: true } : undefined);
-    if (error || !data) return toast.error(error?.message ?? "Could not open the file");
-    await track(id, download ? "download" : "view");
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+      .createSignedUrl(path, 600, download ? { download: true } : undefined);
+    if (error || !data?.signedUrl) return toast.error(error?.message ?? "Could not open the file");
+
+    if (download) {
+      const a = document.createElement("a");
+      a.href = data.signedUrl;
+      a.download = `${title}.pdf`;
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      // Preview inside the app: new tabs are blocked inside embedded previews.
+      setViewer({ title, url: data.signedUrl });
+    }
+    void track(id, download ? "download" : "view");
   }
 
   if (loading) return <CenteredSpinner />;
