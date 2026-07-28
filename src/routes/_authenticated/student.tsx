@@ -211,6 +211,31 @@ function StudentPage() {
           )}
         </section>
       </main>
+
+      <Dialog open={!!viewer} onOpenChange={(o) => !o && setViewer(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">{viewer?.title}</DialogTitle>
+          </DialogHeader>
+          {viewer ? (
+            <>
+              <iframe
+                src={viewer.url}
+                title={viewer.title}
+                className="h-[70vh] w-full rounded-lg border border-border bg-secondary/30"
+              />
+              <a
+                href={viewer.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-primary underline underline-offset-4"
+              >
+                Open in a new tab
+              </a>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
