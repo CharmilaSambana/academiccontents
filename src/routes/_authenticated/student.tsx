@@ -155,7 +155,8 @@ function StudentPage() {
                   (e) => e.material_id === m.id && e.event_type === "view",
                 );
                 const subject = m.subjects as { name: string; code: string } | null;
-                const teacher = m.profiles as { full_name: string } | null;
+                const teacherName =
+                  teachers.data?.find((t) => t.id === m.teacher_id)?.full_name || "Faculty";
                 return (
                   <article
                     key={m.id}
