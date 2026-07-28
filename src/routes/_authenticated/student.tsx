@@ -47,6 +47,17 @@ function StudentPage() {
     },
   });
 
+  const teachers = useQuery({
+    queryKey: ["teacher-names"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id, full_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+
+
   const myEvents = useQuery({
     queryKey: ["student-events", user?.id],
     enabled: !!user,
