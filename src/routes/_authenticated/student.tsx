@@ -7,6 +7,12 @@ import { Download, Eye, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { REGULATIONS } from "@/lib/regulations";
 import { useAuth } from "@/lib/use-auth";
 
