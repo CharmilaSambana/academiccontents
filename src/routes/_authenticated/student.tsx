@@ -31,6 +31,7 @@ function StudentPage() {
   const { user, profile, loading, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [viewer, setViewer] = useState<{ title: string; url: string } | null>(null);
   const regulation = profile?.regulation ?? null;
 
   const materials = useQuery({
