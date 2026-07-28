@@ -7,6 +7,12 @@ import { Download, Eye, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { REGULATIONS } from "@/lib/regulations";
 import { useAuth } from "@/lib/use-auth";
 
@@ -31,6 +37,7 @@ function StudentPage() {
   const { user, profile, loading, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [viewer, setViewer] = useState<{ title: string; url: string } | null>(null);
   const regulation = profile?.regulation ?? null;
 
   const materials = useQuery({
@@ -94,13 +101,25 @@ function StudentPage() {
     void queryClient.invalidateQueries({ queryKey: ["student-events", user.id] });
   }
 
-  async function openMaterial(id: string, path: string, download: boolean) {
+  async function openMaterial(id: string, title: string, path: string, download: boolean) {
     const { data, error } = await supabase.storage
       .from("materials")
-      .createSignedUrl(path, 300, download ? { download: true } : undefined);
-    if (error || !data) return toast.error(error?.message ?? "Could not open the file");
-    await track(id, download ? "download" : "view");
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+      .createSignedUrl(path, 600, download ? { download: true } : undefined);
+    if (error || !data?.signedUrl) return toast.error(error?.message ?? "Could not open the file");
+
+    if (download) {
+      const a = document.createElement("a");
+      a.href = data.signedUrl;
+      a.download = `${title}.pdf`;
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      // Preview inside the app: new tabs are blocked inside embedded previews.
+      setViewer({ title, url: data.signedUrl });
+    }
+    void track(id, download ? "download" : "view");
   }
 
   if (loading) return <CenteredSpinner />;
@@ -181,10 +200,13 @@ function StudentPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => openMaterial(m.id, m.file_path, false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => openMaterial(m.id, m.title, m.file_path, false)}
+                      >
                         <Eye className="mr-2 h-4 w-4" /> View
                       </Button>
-                      <Button onClick={() => openMaterial(m.id, m.file_path, true)}>
+                      <Button onClick={() => openMaterial(m.id, m.title, m.file_path, true)}>
                         <Download className="mr-2 h-4 w-4" /> Download
                       </Button>
                     </div>
@@ -195,6 +217,31 @@ function StudentPage() {
           )}
         </section>
       </main>
+
+      <Dialog open={!!viewer} onOpenChange={(o) => !o && setViewer(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">{viewer?.title}</DialogTitle>
+          </DialogHeader>
+          {viewer ? (
+            <>
+              <iframe
+                src={viewer.url}
+                title={viewer.title}
+                className="h-[70vh] w-full rounded-lg border border-border bg-secondary/30"
+              />
+              <a
+                href={viewer.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-primary underline underline-offset-4"
+              >
+                Open in a new tab
+              </a>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
