@@ -194,10 +194,13 @@ function StudentPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => openMaterial(m.id, m.file_path, false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => openMaterial(m.id, m.title, m.file_path, false)}
+                      >
                         <Eye className="mr-2 h-4 w-4" /> View
                       </Button>
-                      <Button onClick={() => openMaterial(m.id, m.file_path, true)}>
+                      <Button onClick={() => openMaterial(m.id, m.title, m.file_path, true)}>
                         <Download className="mr-2 h-4 w-4" /> Download
                       </Button>
                     </div>
