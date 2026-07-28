@@ -171,7 +171,7 @@ function StudentPage() {
                         <p className="text-sm text-muted-foreground">
                           {subject?.name}
                           {subject?.code ? ` (${subject.code})` : ""} ·{" "}
-                          {teacher?.full_name || "Faculty"}
+                          {teacherName}
                         </p>
                         {seen ? (
                           <span className="mt-1 inline-block text-xs font-medium text-accent">
