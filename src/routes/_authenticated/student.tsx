@@ -39,7 +39,7 @@ function StudentPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("materials")
-        .select("id, title, file_path, created_at, subjects(name, code), profiles:teacher_id(full_name)")
+        .select("id, title, file_path, created_at, teacher_id, subjects(name, code)")
         .eq("regulation", regulation!)
         .order("created_at", { ascending: false });
       if (error) throw error;
