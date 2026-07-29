@@ -119,20 +119,17 @@ function StudentPage() {
         blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" }),
       );
 
-      const a = document.createElement("a");
-      a.href = blobUrl;
       if (download) {
+        const a = document.createElement("a");
+        a.href = blobUrl;
         a.download = `${title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
       } else {
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
+        setViewer({ title, url: blobUrl });
       }
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      if (!download) setViewer({ title, url: blobUrl });
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not open the file");
       return;
