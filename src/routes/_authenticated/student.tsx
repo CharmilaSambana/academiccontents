@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+
+const PdfCanvasViewer = lazy(() => import("@/components/pdf-canvas-viewer"));
+
 import { toast } from "sonner";
 import { Download, Eye, FileText, Loader2 } from "lucide-react";
 
@@ -248,27 +251,29 @@ function StudentPage() {
           </DialogHeader>
           {viewer ? (
             <>
-              <object
-                data={viewer.url}
-                type="application/pdf"
-                className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30"
+              <ClientOnly
+                fallback={
+                  <div className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30" />
+                }
               >
-                <iframe
-                  src={viewer.url}
-                  title={viewer.title}
-                  className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30"
-                />
-              </object>
+                <Suspense
+                  fallback={
+                    <div className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30" />
+                  }
+                >
+                  <PdfCanvasViewer url={viewer.url} />
+                </Suspense>
+              </ClientOnly>
               <a
                 href={viewer.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                download={`${viewer.title}.pdf`}
                 className="text-sm font-medium text-primary underline underline-offset-4"
               >
-                Open in a new tab
+                Download this PDF
               </a>
             </>
           ) : null}
+
         </DialogContent>
       </Dialog>
     </div>
