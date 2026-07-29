@@ -109,16 +109,30 @@ function StudentPage() {
 
     const proxiedUrl = buildMaterialProxyUrl(data.signedUrl, title, download ? "download" : "inline");
 
-    if (download) {
-      const a = document.createElement("a");
-      a.href = proxiedUrl;
-      a.download = `${title}.pdf`;
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } else {
-      setViewer({ title, url: proxiedUrl });
+    try {
+      // Fetch the bytes ourselves so desktop browsers render a same-origin blob
+      // instead of relying on plugin handling of a streamed remote URL.
+      const res = await fetch(proxiedUrl);
+      if (!res.ok) throw new Error("Could not load PDF");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(
+        blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" }),
+      );
+
+      if (download) {
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `${title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      } else {
+        setViewer({ title, url: blobUrl });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not open the file");
+      return;
     }
     void track(id, download ? "download" : "view");
   }
@@ -219,18 +233,32 @@ function StudentPage() {
         </section>
       </main>
 
-      <Dialog open={!!viewer} onOpenChange={(o) => !o && setViewer(null)}>
-        <DialogContent className="max-w-4xl">
+      <Dialog
+        open={!!viewer}
+        onOpenChange={(o) => {
+          if (!o && viewer) {
+            URL.revokeObjectURL(viewer.url);
+            setViewer(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[min(96vw,72rem)]">
           <DialogHeader>
             <DialogTitle className="font-display">{viewer?.title}</DialogTitle>
           </DialogHeader>
           {viewer ? (
             <>
-              <iframe
-                src={viewer.url}
-                title={viewer.title}
-                className="h-[70vh] w-full rounded-lg border border-border bg-secondary/30"
-              />
+              <object
+                data={viewer.url}
+                type="application/pdf"
+                className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30"
+              >
+                <iframe
+                  src={viewer.url}
+                  title={viewer.title}
+                  className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30"
+                />
+              </object>
               <a
                 href={viewer.url}
                 target="_blank"
