@@ -107,17 +107,18 @@ function StudentPage() {
       .createSignedUrl(path, 600, download ? { download: true } : undefined);
     if (error || !data?.signedUrl) return toast.error(error?.message ?? "Could not open the file");
 
+    const proxiedUrl = buildMaterialProxyUrl(data.signedUrl, title, download ? "download" : "inline");
+
     if (download) {
       const a = document.createElement("a");
-      a.href = data.signedUrl;
+      a.href = proxiedUrl;
       a.download = `${title}.pdf`;
       a.rel = "noopener noreferrer";
       document.body.appendChild(a);
       a.click();
       a.remove();
     } else {
-      // Preview inside the app: new tabs are blocked inside embedded previews.
-      setViewer({ title, url: data.signedUrl });
+      setViewer({ title, url: proxiedUrl });
     }
     void track(id, download ? "download" : "view");
   }
@@ -244,6 +245,15 @@ function StudentPage() {
       </Dialog>
     </div>
   );
+}
+
+function buildMaterialProxyUrl(signedUrl: string, title: string, mode: "inline" | "download") {
+  const params = new URLSearchParams({
+    url: signedUrl,
+    name: `${title}.pdf`,
+    mode,
+  });
+  return `/api/public/material-proxy?${params.toString()}`;
 }
 
 function EmptyState({ text }: { text: string }) {
