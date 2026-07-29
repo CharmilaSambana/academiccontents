@@ -109,16 +109,33 @@ function StudentPage() {
 
     const proxiedUrl = buildMaterialProxyUrl(data.signedUrl, title, download ? "download" : "inline");
 
-    if (download) {
+    try {
+      // Fetch the bytes ourselves so desktop browsers render a same-origin blob
+      // instead of relying on plugin handling of a streamed remote URL.
+      const res = await fetch(proxiedUrl);
+      if (!res.ok) throw new Error("Could not load PDF");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(
+        blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" }),
+      );
+
       const a = document.createElement("a");
-      a.href = proxiedUrl;
-      a.download = `${title}.pdf`;
-      a.rel = "noopener noreferrer";
+      a.href = blobUrl;
+      if (download) {
+        a.download = `${title}.pdf`;
+      } else {
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+      }
       document.body.appendChild(a);
       a.click();
       a.remove();
-    } else {
-      setViewer({ title, url: proxiedUrl });
+
+      if (!download) setViewer({ title, url: blobUrl });
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not open the file");
+      return;
     }
     void track(id, download ? "download" : "view");
   }
