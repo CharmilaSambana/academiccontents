@@ -233,18 +233,32 @@ function StudentPage() {
         </section>
       </main>
 
-      <Dialog open={!!viewer} onOpenChange={(o) => !o && setViewer(null)}>
-        <DialogContent className="max-w-4xl">
+      <Dialog
+        open={!!viewer}
+        onOpenChange={(o) => {
+          if (!o && viewer) {
+            URL.revokeObjectURL(viewer.url);
+            setViewer(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[min(96vw,72rem)]">
           <DialogHeader>
             <DialogTitle className="font-display">{viewer?.title}</DialogTitle>
           </DialogHeader>
           {viewer ? (
             <>
-              <iframe
-                src={viewer.url}
-                title={viewer.title}
-                className="h-[70vh] w-full rounded-lg border border-border bg-secondary/30"
-              />
+              <object
+                data={viewer.url}
+                type="application/pdf"
+                className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30"
+              >
+                <iframe
+                  src={viewer.url}
+                  title={viewer.title}
+                  className="h-[75vh] w-full rounded-lg border border-border bg-secondary/30"
+                />
+              </object>
               <a
                 href={viewer.url}
                 target="_blank"
