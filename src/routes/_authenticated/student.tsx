@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+
+const PdfCanvasViewer = lazy(() => import("@/components/pdf-canvas-viewer"));
+
 import { toast } from "sonner";
 import { Download, Eye, FileText, Loader2 } from "lucide-react";
 
