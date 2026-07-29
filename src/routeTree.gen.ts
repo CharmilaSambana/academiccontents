@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTeacherRouteImport } from './routes/_authenticated/teacher'
 import { Route as AuthenticatedStudentRouteImport } from './routes/_authenticated/student'
+import { Route as ApiPublicMaterialProxyRouteImport } from './routes/api/public/material-proxy'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -45,6 +46,11 @@ const AuthenticatedStudentRoute = AuthenticatedStudentRouteImport.update({
   path: '/student',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicMaterialProxyRoute = ApiPublicMaterialProxyRouteImport.update({
+  id: '/api/public/material-proxy',
+  path: '/api/public/material-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/student': typeof AuthenticatedStudentRoute
   '/teacher': typeof AuthenticatedTeacherRoute
+  '/api/public/material-proxy': typeof ApiPublicMaterialProxyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/student': typeof AuthenticatedStudentRoute
   '/teacher': typeof AuthenticatedTeacherRoute
+  '/api/public/material-proxy': typeof ApiPublicMaterialProxyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +76,25 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/student': typeof AuthenticatedStudentRoute
   '/_authenticated/teacher': typeof AuthenticatedTeacherRoute
+  '/api/public/material-proxy': typeof ApiPublicMaterialProxyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/sitemap.xml' | '/student' | '/teacher'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/student'
+    | '/teacher'
+    | '/api/public/material-proxy'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/sitemap.xml' | '/student' | '/teacher'
+  to:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/student'
+    | '/teacher'
+    | '/api/public/material-proxy'
   id:
     | '__root__'
     | '/'
@@ -82,6 +103,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/student'
     | '/_authenticated/teacher'
+    | '/api/public/material-proxy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -89,6 +111,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicMaterialProxyRoute: typeof ApiPublicMaterialProxyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -135,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStudentRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/material-proxy': {
+      id: '/api/public/material-proxy'
+      path: '/api/public/material-proxy'
+      fullPath: '/api/public/material-proxy'
+      preLoaderRoute: typeof ApiPublicMaterialProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -156,6 +186,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicMaterialProxyRoute: ApiPublicMaterialProxyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
