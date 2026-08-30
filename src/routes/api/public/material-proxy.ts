@@ -40,11 +40,19 @@ export const Route = createFileRoute("/api/public/material-proxy")({
 function parseAllowedStorageUrl(value: string) {
   try {
     const sourceUrl = new URL(value);
-    const configuredUrl = process.env.SUPABASE_URL;
-    if (!configuredUrl) return null;
 
-    const allowedHost = new URL(configuredUrl).host;
-    const isAllowedHost = sourceUrl.host === allowedHost;
+    // Host allow-list: the configured Supabase project when available,
+    // otherwise any Supabase storage host (env vars may be unset on
+    // third-party hosting such as Vercel).
+    const configuredUrl =
+      process.env.SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL ||
+      import.meta.env?.VITE_SUPABASE_URL;
+
+    const isAllowedHost = configuredUrl
+      ? sourceUrl.host === new URL(configuredUrl).host
+      : sourceUrl.protocol === "https:" && sourceUrl.host.endsWith(".supabase.co");
+
     const isSignedMaterialUrl = sourceUrl.pathname.startsWith(
       "/storage/v1/object/sign/materials/",
     );

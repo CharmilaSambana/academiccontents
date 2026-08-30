@@ -115,7 +115,11 @@ function StudentPage() {
     try {
       // Fetch the bytes ourselves so desktop browsers render a same-origin blob
       // instead of relying on plugin handling of a streamed remote URL.
-      const res = await fetch(proxiedUrl);
+      let res = await fetch(proxiedUrl);
+      if (!res.ok) {
+        // Fallback for hosts where the same-origin proxy route isn't available.
+        res = await fetch(data.signedUrl);
+      }
       if (!res.ok) throw new Error("Could not load PDF");
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(
