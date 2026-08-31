@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { GraduationCap, Presentation, FileText, BarChart3 } from "lucide-react";
+import { GraduationCap, Presentation, FileText, BarChart3, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -54,6 +54,12 @@ function Index() {
             title="I'm a Faculty"
             body="Add the subjects you teach per regulation, upload PDFs, and watch views and downloads live."
           />
+          <RoleCard
+            to="admin"
+            icon={<ShieldCheck className="h-7 w-7" />}
+            title="I'm the Admin"
+            body="Review registered students and faculty, uploaded PDFs, and engagement per subject code."
+          />
         </section>
 
         <section className="mt-14 grid gap-4 sm:grid-cols-2">
@@ -79,7 +85,7 @@ function RoleCard({
   title,
   body,
 }: {
-  to: "student" | "teacher";
+  to: "student" | "teacher" | "admin";
   icon: React.ReactNode;
   title: string;
   body: string;
