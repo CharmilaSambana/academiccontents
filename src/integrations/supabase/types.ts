@@ -115,7 +115,7 @@ export type Database = {
           teacher_id: string
         }
         Insert: {
-          code?: string
+          code: string
           created_at?: string
           id?: string
           name: string
