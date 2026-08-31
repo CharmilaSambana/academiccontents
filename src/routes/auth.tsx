@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ArrowLeft, GraduationCap, Presentation } from "lucide-react";
+import { ArrowLeft, GraduationCap, Presentation, ShieldCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const searchSchema = z.object({
-  role: z.enum(["student", "teacher"]).catch("student"),
+  role: z.enum(["student", "teacher", "admin"]).catch("student"),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -44,6 +44,7 @@ function AuthPage() {
   const { role } = Route.useSearch();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -68,7 +69,7 @@ function AuthPage() {
       password: parsed.data.password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName, role },
+        data: { full_name: fullName, role: role === "teacher" ? "teacher" : "student" },
       },
     });
     setLoading(false);
@@ -96,7 +97,22 @@ function AuthPage() {
     await routeByRole(navigate);
   }
 
+  async function handleForgotPassword() {
+    const parsed = z.string().trim().email().safeParse(loginEmail);
+    if (!parsed.success) {
+      return toast.error("Enter your email above first, then click Forgot password");
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Password reset link sent — check your inbox");
+  }
+
   const isTeacher = role === "teacher";
+  const isAdmin = role === "admin";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
@@ -111,7 +127,9 @@ function AuthPage() {
         <div className="rounded-2xl border border-border bg-card p-7 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              {isTeacher ? (
+              {isAdmin ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : isTeacher ? (
                 <Presentation className="h-5 w-5" />
               ) : (
                 <GraduationCap className="h-5 w-5" />
@@ -119,40 +137,61 @@ function AuthPage() {
             </span>
             <div>
               <h1 className="font-display text-xl font-semibold text-foreground">
-                {isTeacher ? "Faculty access" : "Student access"}
+                {isAdmin ? "Administrator access" : isTeacher ? "Faculty access" : "Student access"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Register if you're new, otherwise sign in.
+                {isAdmin
+                  ? "Sign in with the administrator account."
+                  : "Register if you're new, otherwise sign in."}
               </p>
             </div>
           </div>
 
           <Tabs defaultValue="login" className="mt-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className={`grid w-full ${isAdmin ? "grid-cols-1" : "grid-cols-2"}`}>
               <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              {isAdmin ? null : <TabsTrigger value="register">Register</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4 pt-4">
-                <Field id="login-email" name="email" label="Email" type="email" />
+                <Field
+                  id="login-email"
+                  name="email"
+                  label="Email"
+                  type="email"
+                  value={loginEmail}
+                  onChange={setLoginEmail}
+                />
                 <Field id="login-password" name="password" label="Password" type="password" />
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Please wait…" : "Sign in"}
                 </Button>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="w-full text-center text-sm font-medium text-primary underline underline-offset-4 disabled:opacity-60"
+                >
+                  Forgot password?
+                </button>
               </form>
             </TabsContent>
 
-            <TabsContent value="register">
-              <form onSubmit={handleRegister} className="space-y-4 pt-4">
-                <Field id="reg-name" name="fullName" label="Full name" type="text" />
-                <Field id="reg-email" name="email" label="Email" type="email" />
-                <Field id="reg-password" name="password" label="Password" type="password" />
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Please wait…" : `Create ${isTeacher ? "faculty" : "student"} account`}
-                </Button>
-              </form>
-            </TabsContent>
+            {isAdmin ? null : (
+              <TabsContent value="register">
+                <form onSubmit={handleRegister} className="space-y-4 pt-4">
+                  <Field id="reg-name" name="fullName" label="Full name" type="text" />
+                  <Field id="reg-email" name="email" label="Email" type="email" />
+                  <Field id="reg-password" name="password" label="Password" type="password" />
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading
+                      ? "Please wait…"
+                      : `Create ${isTeacher ? "faculty" : "student"} account`}
+                  </Button>
+                </form>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
@@ -165,16 +204,28 @@ function Field({
   name,
   label,
   type,
+  value,
+  onChange,
 }: {
   id: string;
   name: string;
   label: string;
   type: string;
+  value?: string;
+  onChange?: (v: string) => void;
 }) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} name={name} type={type} required maxLength={255} autoComplete="on" />
+      <Input
+        id={id}
+        name={name}
+        type={type}
+        required
+        maxLength={255}
+        autoComplete="on"
+        {...(onChange ? { value: value ?? "", onChange: (e) => onChange(e.target.value) } : {})}
+      />
     </div>
   );
 }
@@ -187,5 +238,7 @@ async function routeByRole(navigate: ReturnType<typeof useNavigate>) {
     .select("role")
     .eq("user_id", userData.user.id)
     .maybeSingle();
-  navigate({ to: data?.role === "teacher" ? "/teacher" : "/student", replace: true });
+  const to =
+    data?.role === "admin" ? "/admin" : data?.role === "teacher" ? "/teacher" : "/student";
+  navigate({ to, replace: true });
 }

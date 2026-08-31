@@ -273,6 +273,7 @@ function SubjectForm({
     const name = String(data.get("name") ?? "").trim();
     const code = String(data.get("code") ?? "").trim();
     if (!name) return toast.error("Enter the subject name");
+    if (!code) return toast.error("Subject code is required");
     if (!regulation) return toast.error("Select a regulation");
 
     setBusy(true);
@@ -303,8 +304,14 @@ function SubjectForm({
             <Input id="subject-name" name="name" maxLength={120} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="subject-code">Subject code</Label>
-            <Input id="subject-code" name="code" maxLength={30} placeholder="Optional" />
+            <Label htmlFor="subject-code">Subject code (required)</Label>
+            <Input
+              id="subject-code"
+              name="code"
+              maxLength={30}
+              required
+              placeholder="e.g. CS301"
+            />
           </div>
         </div>
         <div className="space-y-2">
@@ -336,7 +343,7 @@ function SubjectForm({
               key={s.id}
               className="rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs font-medium text-foreground"
             >
-              {s.name} · {s.regulation}
+              {s.code} · {s.name} · {s.regulation}
             </span>
           ))
         )}
