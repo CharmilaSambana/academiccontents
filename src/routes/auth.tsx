@@ -56,12 +56,17 @@ function AuthPage() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const fullName = String(form.get("fullName") ?? "").trim();
+    const department = String(form.get("department") ?? "").trim();
+    const studentId = String(form.get("studentId") ?? "").trim();
+    const confirm = String(form.get("confirmPassword") ?? "");
     const parsed = credentials.safeParse({
       email: form.get("email"),
       password: form.get("password"),
     });
     if (!fullName) return toast.error("Please enter your full name");
+    if (!department) return toast.error("Please enter your department");
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    if (parsed.data.password !== confirm) return toast.error("Passwords do not match");
 
     setLoading(true);
     const { error } = await supabase.auth.signUp({
@@ -69,13 +74,14 @@ function AuthPage() {
       password: parsed.data.password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName, role: role === "teacher" ? "teacher" : "student" },
+        // Role is never chosen here — the database assigns "student" to every new account.
+        data: { full_name: fullName, department, student_id: studentId },
       },
     });
     setLoading(false);
 
     if (error) return toast.error(error.message);
-    toast.success("Account created. Signing you in…");
+    toast.success("Account created — you're registered as a student.");
     await routeByRole(navigate);
   }
 
@@ -96,6 +102,7 @@ function AuthPage() {
     toast.success("Welcome back");
     await routeByRole(navigate);
   }
+
 
   async function handleForgotPassword() {
     const parsed = z.string().trim().email().safeParse(loginEmail);
