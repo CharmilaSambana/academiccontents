@@ -14,27 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
-      material_events: {
+      audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          new_value: string | null
+          previous_value: string | null
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          previous_value?: string | null
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          previous_value?: string | null
+          target_user_id?: string
+        }
+        Relationships: []
+      }
+      edit_requests: {
         Row: {
           created_at: string
-          event_type: string
+          current_value: string | null
+          field: string
           id: string
-          material_id: string
+          note: string | null
+          requested_value: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
           student_id: string
         }
         Insert: {
           created_at?: string
-          event_type: string
+          current_value?: string | null
+          field: string
           id?: string
-          material_id: string
+          note?: string | null
+          requested_value: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
           student_id: string
         }
         Update: {
           created_at?: string
+          current_value?: string | null
+          field?: string
+          id?: string
+          note?: string | null
+          requested_value?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string
+        }
+        Relationships: []
+      }
+      material_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          faculty_id: string | null
+          id: string
+          material_id: string
+          regulation: string | null
+          student_id: string
+          subject_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          faculty_id?: string | null
+          id?: string
+          material_id: string
+          regulation?: string | null
+          student_id: string
+          subject_id?: string | null
+        }
+        Update: {
+          created_at?: string
           event_type?: string
+          faculty_id?: string | null
           id?: string
           material_id?: string
+          regulation?: string | null
           student_id?: string
+          subject_id?: string | null
         }
         Relationships: [
           {
@@ -49,6 +127,7 @@ export type Database = {
       materials: {
         Row: {
           created_at: string
+          description: string | null
           file_path: string
           id: string
           regulation: string
@@ -58,6 +137,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           file_path: string
           id?: string
           regulation: string
@@ -67,6 +147,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           file_path?: string
           id?: string
           regulation?: string
@@ -87,21 +168,57 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          department: string | null
+          email: string | null
+          faculty_id: string | null
           full_name: string
           id: string
           regulation: string | null
+          status: string
+          student_id: string | null
+          updated_at: string
         }
         Insert: {
           created_at?: string
+          department?: string | null
+          email?: string | null
+          faculty_id?: string | null
           full_name?: string
           id: string
           regulation?: string | null
+          status?: string
+          student_id?: string | null
+          updated_at?: string
         }
         Update: {
           created_at?: string
+          department?: string | null
+          email?: string | null
+          faculty_id?: string | null
           full_name?: string
           id?: string
           regulation?: string | null
+          status?: string
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      regulations: {
+        Row: {
+          code: string
+          created_at: string
+          label: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          label: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          label?: string
         }
         Relationships: []
       }
@@ -155,6 +272,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_review_edit_request: {
+        Args: { _approve: boolean; _request: string }
+        Returns: undefined
+      }
+      admin_set_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _target: string
+        }
+        Returns: undefined
+      }
+      admin_set_status: {
+        Args: { _status: string; _target: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -162,6 +294,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active: { Args: { _user_id: string }; Returns: boolean }
+      my_regulation: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "student" | "teacher" | "admin"
