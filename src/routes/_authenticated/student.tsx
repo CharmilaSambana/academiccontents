@@ -271,6 +271,8 @@ function StudentPage() {
             </div>
           )}
         </section>
+
+        <ProfileSection />
       </main>
 
       <Dialog
