@@ -202,7 +202,7 @@ function StudentPage() {
             <EmptyState text="No PDFs match this search yet." />
           ) : (
             <div className="mt-4 grid gap-4">
-              {materials.data!.map((m) => {
+              {filteredMaterials.map((m) => {
                 const seen = myEvents.data?.some(
                   (e) => e.material_id === m.id && e.event_type === "view",
                 );
