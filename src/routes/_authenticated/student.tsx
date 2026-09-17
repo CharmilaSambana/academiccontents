@@ -319,6 +319,121 @@ function StudentPage() {
   );
 }
 
+function ProfileSection() {
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
+  const [field, setField] = useState("");
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const requests = useQuery({
+    queryKey: ["my-edit-requests", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("edit_requests")
+        .select("id, field, requested_value, status, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const current: Record<string, string | null | undefined> = {
+    full_name: profile?.full_name,
+    student_id: profile?.student_id,
+    department: profile?.department,
+    regulation: profile?.regulation,
+  };
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    if (!field) return toast.error("Choose what you want changed");
+    if (!value.trim()) return toast.error("Enter the new value");
+    setBusy(true);
+    const { error } = await supabase.from("edit_requests").insert({
+      student_id: user.id,
+      field,
+      current_value: current[field] ?? null,
+      requested_value: value.trim(),
+      status: "pending",
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    setField("");
+    setValue("");
+    toast.success("Request sent to the administrator");
+    void queryClient.invalidateQueries({ queryKey: ["my-edit-requests", user.id] });
+  }
+
+  return (
+    <section className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-lg font-semibold text-foreground">My profile</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Your details are read-only. Ask the administrator to change anything that's wrong.
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ReadOnly label="Full name" value={profile?.full_name} />
+        <ReadOnly label="Email" value={profile?.email} />
+        <ReadOnly label="Student ID" value={profile?.student_id} />
+        <ReadOnly label="Department" value={profile?.department} />
+        <ReadOnly label="Regulation" value={profile?.regulation} />
+      </div>
+
+      <form onSubmit={submit} className="mt-6 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="space-y-2">
+          <Label>What should change?</Label>
+          <Select value={field} onValueChange={setField}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a detail" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="full_name">Full name</SelectItem>
+              <SelectItem value="student_id">Student ID</SelectItem>
+              <SelectItem value="department">Department</SelectItem>
+              <SelectItem value="regulation">Regulation</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="req-value">Correct value</Label>
+          <Input id="req-value" value={value} onChange={(e) => setValue(e.target.value)} />
+        </div>
+        <Button type="submit" disabled={busy}>
+          {busy ? "Sending…" : "Request change"}
+        </Button>
+      </form>
+
+      {(requests.data?.length ?? 0) > 0 ? (
+        <div className="mt-5 grid gap-2">
+          {requests.data!.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 px-4 py-2 text-sm"
+            >
+              <span className="text-foreground">
+                {r.field.replace("_", " ")} → {r.requested_value}
+              </span>
+              <span className="text-xs text-muted-foreground uppercase">{r.status}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ReadOnly({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-foreground">{value || "—"}</p>
+    </div>
+  );
+}
+
 function buildMaterialProxyUrl(signedUrl: string, title: string, mode: "inline" | "download") {
   const params = new URLSearchParams({
     url: signedUrl,
