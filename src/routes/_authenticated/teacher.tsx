@@ -215,13 +215,16 @@ function TeacherPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-5 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-5 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <Eye className="h-4 w-4" /> {s.views} viewed
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Download className="h-4 w-4" /> {s.downloads} downloaded
                       </span>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMaterial(s.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
