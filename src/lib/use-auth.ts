@@ -8,6 +8,10 @@ export interface Profile {
   id: string;
   full_name: string;
   regulation: string | null;
+  department: string | null;
+  student_id: string | null;
+  status: string;
+  email: string | null;
 }
 
 export function useAuth() {
@@ -25,7 +29,11 @@ export function useAuth() {
     }
     const [{ data: roleRow }, { data: profileRow }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", u.id).maybeSingle(),
-      supabase.from("profiles").select("id, full_name, regulation").eq("id", u.id).maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("id, full_name, regulation, department, student_id, status, email")
+        .eq("id", u.id)
+        .maybeSingle(),
     ]);
     setRole((roleRow?.role as AppRole) ?? null);
     setProfile((profileRow as Profile) ?? null);
@@ -60,6 +68,7 @@ export function useAuth() {
     role,
     profile,
     loading,
+    disabled: profile?.status === "disabled",
     refreshProfile: () => hydrate(user),
   };
 }

@@ -190,7 +190,15 @@ function AuthPage() {
                 <form onSubmit={handleRegister} className="space-y-4 pt-4">
                   <Field id="reg-name" name="fullName" label="Full name" type="text" />
                   <Field id="reg-email" name="email" label="Email" type="email" />
+                  <Field id="reg-dept" name="department" label="Department" type="text" />
+                  <Field id="reg-sid" name="studentId" label="Student / Faculty ID" type="text" />
                   <Field id="reg-password" name="password" label="Password" type="password" />
+                  <Field
+                    id="reg-confirm"
+                    name="confirmPassword"
+                    label="Confirm password"
+                    type="password"
+                  />
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading
                       ? "Please wait…"
