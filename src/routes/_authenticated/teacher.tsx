@@ -438,6 +438,10 @@ function UploadForm({
           <Input id="material-title" name="title" maxLength={140} required />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="material-description">Description (optional)</Label>
+          <Input id="material-description" name="description" maxLength={300} />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="material-file">PDF file</Label>
           <Input id="material-file" name="file" type="file" accept="application/pdf" required />
         </div>
