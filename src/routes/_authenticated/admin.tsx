@@ -58,7 +58,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, regulation, created_at");
+        .select("id, full_name, regulation, created_at, email, department, student_id, status");
       if (error) throw error;
       return data ?? [];
     },
