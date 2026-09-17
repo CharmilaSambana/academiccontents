@@ -58,7 +58,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, regulation, created_at");
+        .select("id, full_name, regulation, created_at, email, department, student_id, status");
       if (error) throw error;
       return data ?? [];
     },
@@ -301,6 +301,19 @@ function AdminPage() {
             </div>
           )}
         </section>
+
+        <UserManagement
+          profiles={profiles.data ?? []}
+          roles={roles.data ?? []}
+          onChanged={() => {
+            void roles.refetch();
+            void profiles.refetch();
+          }}
+        />
+
+        <EditRequests />
+
+        <AuditLog profiles={profiles.data ?? []} />
       </main>
     </div>
   );
@@ -330,5 +343,209 @@ function CenteredSpinner() {
     <div className="flex items-center justify-center py-16 text-muted-foreground">
       <Loader2 className="h-5 w-5 animate-spin" />
     </div>
+  );
+}
+
+type ProfileRow = {
+  id: string;
+  full_name: string;
+  email: string | null;
+  department: string | null;
+  student_id: string | null;
+  status: string;
+  regulation: string | null;
+  created_at: string;
+};
+
+type RoleRow = { user_id: string; role: string };
+
+function UserManagement({
+  profiles,
+  roles,
+  onChanged,
+}: {
+  profiles: ProfileRow[];
+  roles: RoleRow[];
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const roleById = new Map(roles.map((r) => [r.user_id, r.role]));
+
+  async function setRole(id: string, role: string) {
+    setBusy(id);
+    const { error } = await supabase.rpc("admin_set_role", {
+      _target: id,
+      _role: role as "student" | "teacher" | "admin",
+    });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Role updated");
+    onChanged();
+  }
+
+  async function setStatus(id: string, status: string) {
+    setBusy(id);
+    const { error } = await supabase.rpc("admin_set_status", { _target: id, _status: status });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success(status === "active" ? "Account activated" : "Account disabled");
+    onChanged();
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-lg font-semibold text-foreground">User management</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Change what someone can do, or switch their account off.
+      </p>
+
+      {profiles.length === 0 ? (
+        <EmptyState text="No registered members yet." />
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {profiles.map((p) => (
+            <div
+              key={p.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-3"
+            >
+              <div>
+                <p className="text-sm font-semibold text-foreground">{p.full_name || "Unnamed"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {p.email ?? "—"} · {p.department ?? "—"} · {p.student_id ?? "—"} ·{" "}
+                  {p.regulation ?? "—"} · {p.status}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={roleById.get(p.id) ?? "student"}
+                  onValueChange={(v) => setRole(p.id, v)}
+                  disabled={busy === p.id}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="teacher">Faculty</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy === p.id}
+                  onClick={() => setStatus(p.id, p.status === "active" ? "disabled" : "active")}
+                >
+                  {p.status === "active" ? "Disable" : "Activate"}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function EditRequests() {
+  const requests = useQuery({
+    queryKey: ["admin-edit-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("edit_requests")
+        .select("id, student_id, field, current_value, requested_value, status, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function review(id: string, approve: boolean) {
+    const { error } = await supabase.rpc("admin_review_edit_request", {
+      _request: id,
+      _approve: approve,
+    });
+    if (error) return toast.error(error.message);
+    toast.success(approve ? "Change applied" : "Request rejected");
+    void requests.refetch();
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-lg font-semibold text-foreground">Profile change requests</h2>
+      {(requests.data?.length ?? 0) === 0 ? (
+        <EmptyState text="No change requests." />
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {requests.data!.map((r) => (
+            <div
+              key={r.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-3"
+            >
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {r.field.replace("_", " ")}: {r.current_value || "—"} → {r.requested_value}
+                </p>
+                <p className="text-xs text-muted-foreground uppercase">{r.status}</p>
+              </div>
+              {r.status === "pending" ? (
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => review(r.id, true)}>
+                    Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => review(r.id, false)}>
+                    Reject
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AuditLog({ profiles }: { profiles: ProfileRow[] }) {
+  const logs = useQuery({
+    queryKey: ["admin-audit-logs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("id, admin_id, target_user_id, action, previous_value, new_value, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const nameById = new Map(profiles.map((p) => [p.id, p.full_name]));
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-lg font-semibold text-foreground">Activity log</h2>
+      {(logs.data?.length ?? 0) === 0 ? (
+        <EmptyState text="No administrator actions recorded yet." />
+      ) : (
+        <div className="mt-4 grid gap-2">
+          {logs.data!.map((l) => (
+            <div
+              key={l.id}
+              className="rounded-xl border border-border bg-secondary/30 px-4 py-2 text-sm"
+            >
+              <span className="font-medium text-foreground">
+                {nameById.get(l.admin_id) ?? "Admin"} · {l.action.replace(/_/g, " ")} ·{" "}
+                {nameById.get(l.target_user_id) ?? "user"}
+              </span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                {l.previous_value || "—"} → {l.new_value || "—"} ·{" "}
+                {new Date(l.created_at).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

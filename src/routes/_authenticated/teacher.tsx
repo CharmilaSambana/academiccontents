@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { BookPlus, Download, Eye, FileText, Loader2, UploadCloud } from "lucide-react";
+import { BookPlus, Download, Eye, FileText, Loader2, Trash2, UploadCloud } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/app-header";
@@ -111,6 +111,13 @@ function TeacherPage() {
     { views: 0, downloads: 0 },
   );
 
+  async function deleteMaterial(id: string) {
+    const { error } = await supabase.from("materials").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Material deleted");
+    void queryClient.invalidateQueries({ queryKey: ["teacher-materials", user?.id] });
+  }
+
   if (loading) return <CenteredSpinner />;
 
   return (
@@ -215,13 +222,16 @@ function TeacherPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-5 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-5 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <Eye className="h-4 w-4" /> {s.views} viewed
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Download className="h-4 w-4" /> {s.downloads} downloaded
                       </span>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMaterial(s.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -370,6 +380,7 @@ function UploadForm({
     const form = e.currentTarget;
     const data = new FormData(form);
     const title = String(data.get("title") ?? "").trim();
+    const description = String(data.get("description") ?? "").trim();
     const file = data.get("file") as File | null;
     const subject = subjects.find((s) => s.id === subjectId);
 
@@ -395,6 +406,7 @@ function UploadForm({
       subject_id: subject.id,
       regulation: subject.regulation,
       title,
+      description: description || null,
       file_path: path,
     });
     setBusy(false);
@@ -434,6 +446,10 @@ function UploadForm({
         <div className="space-y-2">
           <Label htmlFor="material-title">Title</Label>
           <Input id="material-title" name="title" maxLength={140} required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="material-description">Description (optional)</Label>
+          <Input id="material-description" name="description" maxLength={300} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="material-file">PDF file</Label>

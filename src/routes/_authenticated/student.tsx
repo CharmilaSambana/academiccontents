@@ -1,15 +1,24 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 
 const PdfCanvasViewer = lazy(() => import("@/components/pdf-canvas-viewer"));
 
 import { toast } from "sonner";
-import { Download, Eye, FileText, Loader2 } from "lucide-react";
+import { Download, Eye, FileText, Loader2, Search } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +49,7 @@ function StudentPage() {
   const { user, profile, loading, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [q, setQ] = useState("");
   const [viewer, setViewer] = useState<{ title: string; url: string } | null>(null);
   const regulation = profile?.regulation ?? null;
 
@@ -66,7 +76,19 @@ function StudentPage() {
     },
   });
 
-
+  const filteredMaterials = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const rows = materials.data ?? [];
+    if (!term) return rows;
+    return rows.filter((m) => {
+      const s = m.subjects as { name: string; code: string } | null;
+      return (
+        m.title.toLowerCase().includes(term) ||
+        (s?.code ?? "").toLowerCase().includes(term) ||
+        (s?.name ?? "").toLowerCase().includes(term)
+      );
+    });
+  }, [materials.data, q]);
 
   const myEvents = useQuery({
     queryKey: ["student-events", user?.id],
@@ -179,19 +201,30 @@ function StudentPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="font-display text-lg font-semibold text-foreground">
-            Shared materials {regulation ? `for ${regulation}` : ""}
-          </h2>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h2 className="font-display text-lg font-semibold text-foreground">
+              Shared materials {regulation ? `for ${regulation}` : ""}
+            </h2>
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search subject code or title"
+                className="pl-9"
+              />
+            </div>
+          </div>
 
           {!regulation ? (
             <EmptyState text="Select your regulation above to see the PDFs shared with your batch." />
           ) : materials.isLoading ? (
             <CenteredSpinner />
-          ) : (materials.data?.length ?? 0) === 0 ? (
-            <EmptyState text="No PDFs have been shared for this regulation yet." />
+          ) : filteredMaterials.length === 0 ? (
+            <EmptyState text="No PDFs match this search yet." />
           ) : (
             <div className="mt-4 grid gap-4">
-              {materials.data!.map((m) => {
+              {filteredMaterials.map((m) => {
                 const seen = myEvents.data?.some(
                   (e) => e.material_id === m.id && e.event_type === "view",
                 );
@@ -238,6 +271,8 @@ function StudentPage() {
             </div>
           )}
         </section>
+
+        <ProfileSection />
       </main>
 
       <Dialog
@@ -280,6 +315,121 @@ function StudentPage() {
 
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function ProfileSection() {
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
+  const [field, setField] = useState("");
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const requests = useQuery({
+    queryKey: ["my-edit-requests", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("edit_requests")
+        .select("id, field, requested_value, status, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const current: Record<string, string | null | undefined> = {
+    full_name: profile?.full_name,
+    student_id: profile?.student_id,
+    department: profile?.department,
+    regulation: profile?.regulation,
+  };
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    if (!field) return toast.error("Choose what you want changed");
+    if (!value.trim()) return toast.error("Enter the new value");
+    setBusy(true);
+    const { error } = await supabase.from("edit_requests").insert({
+      student_id: user.id,
+      field,
+      current_value: current[field] ?? null,
+      requested_value: value.trim(),
+      status: "pending",
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    setField("");
+    setValue("");
+    toast.success("Request sent to the administrator");
+    void queryClient.invalidateQueries({ queryKey: ["my-edit-requests", user.id] });
+  }
+
+  return (
+    <section className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-lg font-semibold text-foreground">My profile</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Your details are read-only. Ask the administrator to change anything that's wrong.
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ReadOnly label="Full name" value={profile?.full_name} />
+        <ReadOnly label="Email" value={profile?.email} />
+        <ReadOnly label="Student ID" value={profile?.student_id} />
+        <ReadOnly label="Department" value={profile?.department} />
+        <ReadOnly label="Regulation" value={profile?.regulation} />
+      </div>
+
+      <form onSubmit={submit} className="mt-6 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="space-y-2">
+          <Label>What should change?</Label>
+          <Select value={field} onValueChange={setField}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a detail" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="full_name">Full name</SelectItem>
+              <SelectItem value="student_id">Student ID</SelectItem>
+              <SelectItem value="department">Department</SelectItem>
+              <SelectItem value="regulation">Regulation</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="req-value">Correct value</Label>
+          <Input id="req-value" value={value} onChange={(e) => setValue(e.target.value)} />
+        </div>
+        <Button type="submit" disabled={busy}>
+          {busy ? "Sending…" : "Request change"}
+        </Button>
+      </form>
+
+      {(requests.data?.length ?? 0) > 0 ? (
+        <div className="mt-5 grid gap-2">
+          {requests.data!.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 px-4 py-2 text-sm"
+            >
+              <span className="text-foreground">
+                {r.field.replace("_", " ")} → {r.requested_value}
+              </span>
+              <span className="text-xs text-muted-foreground uppercase">{r.status}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ReadOnly({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-foreground">{value || "—"}</p>
     </div>
   );
 }
