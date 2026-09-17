@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { BookPlus, Download, Eye, FileText, Loader2, UploadCloud } from "lucide-react";
+import { BookPlus, Download, Eye, FileText, Loader2, Trash2, UploadCloud } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/app-header";
@@ -110,6 +110,13 @@ function TeacherPage() {
     (acc, s) => ({ views: acc.views + s.views, downloads: acc.downloads + s.downloads }),
     { views: 0, downloads: 0 },
   );
+
+  async function deleteMaterial(id: string) {
+    const { error } = await supabase.from("materials").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Material deleted");
+    void queryClient.invalidateQueries({ queryKey: ["teacher-materials", user?.id] });
+  }
 
   if (loading) return <CenteredSpinner />;
 
