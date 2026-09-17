@@ -370,6 +370,7 @@ function UploadForm({
     const form = e.currentTarget;
     const data = new FormData(form);
     const title = String(data.get("title") ?? "").trim();
+    const description = String(data.get("description") ?? "").trim();
     const file = data.get("file") as File | null;
     const subject = subjects.find((s) => s.id === subjectId);
 
@@ -395,6 +396,7 @@ function UploadForm({
       subject_id: subject.id,
       regulation: subject.regulation,
       title,
+      description: description || null,
       file_path: path,
     });
     setBusy(false);
