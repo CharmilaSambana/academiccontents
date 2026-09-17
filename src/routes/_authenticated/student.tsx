@@ -1,15 +1,24 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 
 const PdfCanvasViewer = lazy(() => import("@/components/pdf-canvas-viewer"));
 
 import { toast } from "sonner";
-import { Download, Eye, FileText, Loader2 } from "lucide-react";
+import { Download, Eye, FileText, Loader2, Search } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -67,7 +76,19 @@ function StudentPage() {
     },
   });
 
-
+  const filteredMaterials = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const rows = materials.data ?? [];
+    if (!term) return rows;
+    return rows.filter((m) => {
+      const s = m.subjects as { name: string; code: string } | null;
+      return (
+        m.title.toLowerCase().includes(term) ||
+        (s?.code ?? "").toLowerCase().includes(term) ||
+        (s?.name ?? "").toLowerCase().includes(term)
+      );
+    });
+  }, [materials.data, q]);
 
   const myEvents = useQuery({
     queryKey: ["student-events", user?.id],
