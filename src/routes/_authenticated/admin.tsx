@@ -301,6 +301,19 @@ function AdminPage() {
             </div>
           )}
         </section>
+
+        <UserManagement
+          profiles={profiles.data ?? []}
+          roles={roles.data ?? []}
+          onChanged={() => {
+            void roles.refetch();
+            void profiles.refetch();
+          }}
+        />
+
+        <EditRequests />
+
+        <AuditLog profiles={profiles.data ?? []} />
       </main>
     </div>
   );
