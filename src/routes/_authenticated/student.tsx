@@ -179,16 +179,27 @@ function StudentPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="font-display text-lg font-semibold text-foreground">
-            Shared materials {regulation ? `for ${regulation}` : ""}
-          </h2>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h2 className="font-display text-lg font-semibold text-foreground">
+              Shared materials {regulation ? `for ${regulation}` : ""}
+            </h2>
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search subject code or title"
+                className="pl-9"
+              />
+            </div>
+          </div>
 
           {!regulation ? (
             <EmptyState text="Select your regulation above to see the PDFs shared with your batch." />
           ) : materials.isLoading ? (
             <CenteredSpinner />
-          ) : (materials.data?.length ?? 0) === 0 ? (
-            <EmptyState text="No PDFs have been shared for this regulation yet." />
+          ) : filteredMaterials.length === 0 ? (
+            <EmptyState text="No PDFs match this search yet." />
           ) : (
             <div className="mt-4 grid gap-4">
               {materials.data!.map((m) => {
